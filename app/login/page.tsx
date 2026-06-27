@@ -26,7 +26,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         toast.success(data.message);
-        router.push("/dashboard");
+        window.location.href = "/dashboard";
       } else {
         toast.error(data.message);
       }

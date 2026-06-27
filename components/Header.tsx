@@ -16,7 +16,7 @@ export default function Header({ toggleSidebar }: { toggleSidebar: () => void })
       const res = await fetch("/api/auth/logout", { method: "POST" });
       if (res.ok) {
         toast.success("Logged out successfully");
-        router.push("/login");
+        window.location.href = "/login";
       }
     } catch (error) {
       toast.error("Failed to log out");
