@@ -3,6 +3,6 @@ import { cookies } from "next/headers";
 
 export async function POST() {
   const cookieStore = await cookies();
-  cookieStore.delete("session");
+  cookieStore.set("session", "", { expires: new Date(0), path: "/" });
   return NextResponse.json({ success: true, message: "Logged out successfully" });
 }

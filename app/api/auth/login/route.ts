@@ -16,6 +16,7 @@ export async function POST(request: Request) {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
+        path: "/",
       });
 
       return NextResponse.json({ success: true, message: "Logged in successfully" });
