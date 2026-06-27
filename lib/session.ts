@@ -2,7 +2,9 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
-const secretKey = process.env.SESSION_SECRET || "default_secret_key_change_in_production_123456";
+// Use a hardcoded secret because Netlify Edge Functions (Middleware) and Node.js Functions (API Routes)
+// sometimes get out of sync with environment variables unless explicitly configured in the Netlify UI.
+const secretKey = "photolab_admin_secret_key_123456";
 const key = new TextEncoder().encode(secretKey);
 
 export async function encrypt(payload: any) {
