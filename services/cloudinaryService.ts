@@ -14,7 +14,7 @@ export async function uploadImage(buffer: Buffer, originalName: string, mimeType
   }
 
   return new Promise<{ id: string; url: string }>((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
+    const uploadStream = cloudinary.uploader.upload_chunked_stream(
       {
         folder: FOLDER_NAME,
         resource_type: "auto",
