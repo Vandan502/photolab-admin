@@ -80,21 +80,62 @@ export default function UploadCard() {
       }, 500);
 
       // 2. Upload all files concurrently directly to Cloudinary
+      const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+
       const uploadPromises = files.map(async (file) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("api_key", apiKey);
-        formData.append("timestamp", timestamp.toString());
-        formData.append("signature", signature);
-        formData.append("folder", folder);
-        
-        const res = await fetch(uploadUrl, {
-          method: "POST",
-          body: formData,
-        });
-        
-        if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
-        return res.json();
+        const uniqueUploadId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        const total = file.size;
+
+        if (total <= CHUNK_SIZE) {
+          // Standard upload for small files
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("api_key", apiKey);
+          formData.append("timestamp", timestamp.toString());
+          formData.append("signature", signature);
+          formData.append("folder", folder);
+          
+          const res = await fetch(uploadUrl, {
+            method: "POST",
+            body: formData,
+          });
+          
+          if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
+          return res.json();
+        } else {
+          // Chunked upload for large files
+          let start = 0;
+          let responseData = null;
+          
+          while (start < total) {
+            const end = Math.min(start + CHUNK_SIZE - 1, total - 1);
+            const chunk = file.slice(start, end + 1);
+            
+            const formData = new FormData();
+            formData.append("file", chunk, file.name);
+            formData.append("api_key", apiKey);
+            formData.append("timestamp", timestamp.toString());
+            formData.append("signature", signature);
+            formData.append("folder", folder);
+            
+            const res = await fetch(uploadUrl, {
+              method: "POST",
+              headers: {
+                'X-Unique-Upload-Id': uniqueUploadId,
+                'Content-Range': `bytes ${start}-${end}/${total}`
+              },
+              body: formData
+            });
+            
+            if (!res.ok) {
+              const errorText = await res.text();
+              throw new Error(`Chunk upload failed for ${file.name}: ${errorText}`);
+            }
+            responseData = await res.json();
+            start += CHUNK_SIZE;
+          }
+          return responseData;
+        }
       });
 
       await Promise.all(uploadPromises);
