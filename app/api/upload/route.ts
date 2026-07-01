@@ -12,15 +12,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No files uploaded" }, { status: 400 });
     }
 
-    const uploadedFiles = [];
-
-    for (const file of files) {
+    const uploadPromises = files.map(async (file) => {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      
-      const result = await uploadImage(buffer, file.name, file.type);
-      uploadedFiles.push(result);
-    }
+      return uploadImage(buffer, file.name, file.type);
+    });
+
+    const uploadedFiles = await Promise.all(uploadPromises);
 
     return NextResponse.json({ success: true, files: uploadedFiles });
   } catch (error: any) {

@@ -14,11 +14,13 @@ export async function uploadImage(buffer: Buffer, originalName: string, mimeType
   }
 
   return new Promise<{ id: string; url: string }>((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_chunked_stream(
+    const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: FOLDER_NAME,
         resource_type: "auto",
-        public_id: originalName.split(".")[0], // Use original name without extension if possible
+        use_filename: true,
+        unique_filename: true,
+        filename_override: originalName,
       },
       (error, result) => {
         if (error || !result) {
