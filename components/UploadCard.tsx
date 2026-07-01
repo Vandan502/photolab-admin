@@ -60,10 +60,15 @@ export default function UploadCard() {
     setUploadProgress(10);
     
     try {
-      const formData = new FormData();
-      files.forEach(file => formData.append("images", file));
+      // 1. Get upload signature from our backend
+      const sigRes = await fetch("/api/upload/signature");
+      if (!sigRes.ok) throw new Error("Failed to get upload signature");
+      const sigData = await sigRes.json();
       
-      // Simulate progress for UI (since fetch doesn't natively support upload progress easily without XMLHttpRequest)
+      const { timestamp, signature, cloudName, apiKey, folder } = sigData;
+      const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+      
+      // Simulate progress for UI
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
@@ -74,26 +79,36 @@ export default function UploadCard() {
         });
       }, 500);
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+      // 2. Upload all files concurrently directly to Cloudinary
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("api_key", apiKey);
+        formData.append("timestamp", timestamp.toString());
+        formData.append("signature", signature);
+        formData.append("folder", folder);
+        
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          body: formData,
+        });
+        
+        if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
+        return res.json();
       });
+
+      await Promise.all(uploadPromises);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      const data = await res.json();
-
-      if (res.ok) {
-        toast.success(`${files.length} image(s) uploaded successfully!`);
-        setFiles([]);
-        // Optional: trigger a refresh event so gallery updates
-        window.dispatchEvent(new Event("imagesUploaded"));
-      } else {
-        toast.error(data.error || "Upload failed. Please try again.");
-      }
+      toast.success(`${files.length} image(s) uploaded successfully!`);
+      setFiles([]);
+      // Optional: trigger a refresh event so gallery updates
+      window.dispatchEvent(new Event("imagesUploaded"));
     } catch (error) {
       toast.error("An error occurred during upload.");
+      console.error(error);
     } finally {
       setTimeout(() => {
         setIsUploading(false);
